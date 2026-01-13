@@ -67,12 +67,14 @@ src/
 ## ✅ Implementation Tasks
 
 ### Task 1: Complete Tournament Routes (`src/routes/tournaments.ts`)
+
 - [ ] Implement `POST /tournaments` endpoint
 - [ ] Use the provided `fp-ts Either` pattern example
 - [ ] Return appropriate HTTP status codes (201 for success, 400 for errors)
 - [ ] Transform response to match `TournamentResponse` interface
 
 ### Task 2: Complete Player Routes (`src/routes/players.ts`)
+
 - [ ] Implement `POST /tournaments/:tournamentId/players` endpoint
 - [ ] Validate tournament exists before adding player
 - [ ] **Pokemon Validation**: Verify player name is a valid Pokemon using PokeAPI
@@ -81,17 +83,20 @@ src/
 - [ ] Return appropriate HTTP status codes (201/400/404)
 
 ### Task 3: Complete Server Setup (`src/server.ts`)
+
 - [ ] Create Fastify instance with logging
 - [ ] Register tournament and player routes
 - [ ] Start server on port 3000
 - [ ] Handle startup errors appropriately
 
 ### Task 4: Complete Entry Point (`src/index.ts`)
+
 - [ ] Import and call the start function
 
 ## 🔧 Pokemon Integration Details
 
 ### PokeAPI Integration Requirements:
+
 1. **Endpoint**: `https://pokeapi.co/api/v2/pokemon/{name}`
 2. **Validation**: ALL player names MUST be valid Pokemon names
 3. **Rejection**: Return 400 Bad Request if name is not a Pokemon
@@ -103,6 +108,7 @@ src/
 6. **No Fallback**: Unlike regular apps, there's no fallback for non-Pokemon names
 
 ### Pokemon Player Object:
+
 ```typescript
 interface PokemonPlayer extends Player {
   pokemonData: {
@@ -117,6 +123,7 @@ interface PokemonPlayer extends Player {
 ## 📖 fp-ts Patterns to Demonstrate
 
 ### Either Pattern (Error Handling)
+
 ```typescript
 import * as E from 'fp-ts/lib/Either'
 import { pipe } from 'fp-ts/lib/function'
@@ -131,6 +138,7 @@ const result = pipe(
 ```
 
 ### TaskEither Pattern (Async Operations)
+
 ```typescript
 import * as TE from 'fp-ts/lib/TaskEither'
 
@@ -142,6 +150,7 @@ const fetchPokemon = (name: string): TE.TaskEither<string, Pokemon> =>
 ```
 
 ### Option Pattern (Nullable Values)
+
 ```typescript
 import * as O from 'fp-ts/lib/Option'
 
@@ -156,7 +165,7 @@ const tournament = pipe(
 
 ## 🧪 Testing Your Implementation
 
-The project includes comprehensive integration tests using **Vitest** and **Supertest**.
+The project includes comprehensive integration tests using **Vitest**.
 
 ### Running Tests
 
@@ -188,7 +197,7 @@ The integration tests cover:
 
 ### Test Structure
 
-```
+```file
 src/test/
 ├── setup.ts           # Test environment setup
 ├── helpers.ts         # Test utilities
@@ -198,6 +207,7 @@ src/test/
 ### Manual Testing Commands:
 
 1. **Create a Tournament:**
+
 ```bash
 curl -X POST http://localhost:3000/tournaments \
   -H "Content-Type: application/json" \
@@ -205,6 +215,7 @@ curl -X POST http://localhost:3000/tournaments \
 ```
 
 2. **Add a Pokemon Player:**
+
 ```bash
 curl -X POST http://localhost:3000/tournaments/{tournamentId}/players \
   -H "Content-Type: application/json" \
@@ -212,6 +223,7 @@ curl -X POST http://localhost:3000/tournaments/{tournamentId}/players \
 ```
 
 3. **Try Adding Invalid Player (should fail):**
+
 ```bash
 curl -X POST http://localhost:3000/tournaments/{tournamentId}/players \
   -H "Content-Type: application/json" \
@@ -220,6 +232,7 @@ curl -X POST http://localhost:3000/tournaments/{tournamentId}/players \
 ```
 
 4. **Health Check:**
+
 ```bash
 curl http://localhost:3000/health
 ```
@@ -256,21 +269,26 @@ Good luck! 🚀
 ## 🔧 Troubleshooting
 
 ### Node.js Version Issues
+
 If you encounter errors like `diagnostics.tracingChannel is not a function`:
 
 1. **Check Node.js version**: `node --version`
 2. **Switch to Node.js 22**: `nvm use 22`
 3. **Install Node.js 22** if not available:
+
    ```bash
    nvm install 22
    nvm use 22
    ```
+
 4. **Reinstall dependencies** after switching:
+
    ```bash
    pnpm install
    ```
 
 ### PNPM Issues
+
 If PNPM commands fail:
 - Install PNPM: `npm install -g pnpm`
 - Or enable corepack: `corepack enable`
