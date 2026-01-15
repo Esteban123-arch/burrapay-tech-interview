@@ -79,5 +79,25 @@ export interface HealthResponse {
 export interface ServerConfig {
   host: string
   port: number
-  
+}
+
+// Cache configuration type
+export interface CacheConfig {
+  ttl: number
+  maxSize: number
+}
+
+// Cached Pokemon entry with metadata
+export interface CachedPokemon {
+  data: PokemonApiResponse
+  cachedAt: number
+  lastAccessed: number
+}
+
+// Cache statistics
+export interface CacheStats {
+  size: number
+  hits: number
+  misses: number
+  hitRate: number
 }

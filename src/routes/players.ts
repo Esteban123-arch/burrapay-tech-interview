@@ -6,6 +6,7 @@ import * as TE from 'fp-ts/lib/TaskEither'
 import { PokemonApiResponse, Player, PlayerResponse, PlayerDetailResponse } from '../types/index.ts'
 import { createPlayer, getTournament, getPlayer, getPlayersByTournament } from '../storage/index.ts'
 import { validateBody, CreatePlayerCodec, CreatePlayerInput } from '../validation/index.ts'
+import { pokemonCache } from '../cache/pokemonCache.ts'
 
 // Pure function to transform Player to PlayerResponse
 const toPlayerResponse = (player: Player): PlayerResponse => ({
@@ -22,8 +23,14 @@ const toPlayerDetailResponse = (player: Player): PlayerDetailResponse => ({
   pokemonData: player.pokemonData
 })
 
-// Pokemon API validation function using TaskEither
-const validatePokemon = (name: string): TE.TaskEither<string, PokemonApiResponse> =>
+// Cache lookup result type
+interface CacheLookupResult {
+  data: PokemonApiResponse
+  fromCache: boolean
+}
+
+// Fetch Pokemon from API and cache the result
+const fetchFromApi = (name: string): TE.TaskEither<string, CacheLookupResult> =>
   TE.tryCatch(
     async () => {
       const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${name.toLowerCase()}`)
@@ -31,15 +38,30 @@ const validatePokemon = (name: string): TE.TaskEither<string, PokemonApiResponse
         throw new Error('Not a valid Pokemon')
       }
       const data = await response.json() as PokemonApiResponse
-      return {
+      const pokemonData: PokemonApiResponse = {
         id: data.id,
         name: data.name,
         types: data.types,
         height: data.height,
         weight: data.weight
       }
+      // Store in cache for future requests
+      pokemonCache.set(name, pokemonData)
+      return { data: pokemonData, fromCache: false }
     },
     () => 'Name is not a valid Pokemon'
+  )
+
+// Pokemon API validation function using TaskEither with cache-first strategy
+const validatePokemon = (name: string): TE.TaskEither<string, CacheLookupResult> =>
+  pipe(
+    pokemonCache.get(name),
+    O.fold(
+      // Cache miss: fetch from API
+      () => fetchFromApi(name),
+      // Cache hit: return cached data
+      (cachedData) => TE.right({ data: cachedData, fromCache: true })
+    )
   )
 
 export async function playerRoutes(fastify: FastifyInstance) {
@@ -75,9 +97,10 @@ export async function playerRoutes(fastify: FastifyInstance) {
         // Left: Pokemon validation failed
         (error) => reply.status(400).send({ error }),
         // Right: Valid Pokemon - create player
-        (pokemonData) => {
+        (result) => {
+          const { data: pokemonData, fromCache } = result
           // Extract types from nested structure
-          const types = pokemonData.types.map((t) => t.type.name)
+          const types = pokemonData.types.map((t: { type: { name: string } }) => t.type.name)
 
           // Create player with Pokemon data
           const playerResult = createPlayer(name, tournamentId, {
@@ -92,8 +115,9 @@ export async function playerRoutes(fastify: FastifyInstance) {
             E.fold(
               // Left: Player creation failed (tournament not found)
               (error) => reply.status(404).send({ error }),
-              // Right: Success - return PlayerResponse
+              // Right: Success - return PlayerResponse with cache header
               (player) => {
+                reply.header('X-Pokemon-Cache', fromCache ? 'HIT' : 'MISS')
                 reply.status(201)
                 return reply.send(toPlayerResponse(player))
               }
