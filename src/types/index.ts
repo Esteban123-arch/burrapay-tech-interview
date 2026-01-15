@@ -55,3 +55,15 @@ export interface PlayerResponse {
   name: string
   tournamentId: string
 }
+
+// Health check response type
+export interface HealthResponse {
+  status: 'OK'
+  timestamp: string
+}
+
+// Server configuration type
+export interface ServerConfig {
+  port: number
+  host: string
+}
