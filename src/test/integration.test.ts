@@ -55,15 +55,15 @@ describe('Pokemon Tournament API Integration Tests', () => {
       expect(storage.tournaments.size).toBe(1)
     })
 
-    it('should handle empty tournament name', async () => {
+    it('should reject empty tournament name', async () => {
       const tournamentData = { name: '' }
 
       const response = await request
         .post('/tournaments')
         .send(tournamentData)
-        .expect(201) // createTournament doesn't validate empty names in current implementation
+        .expect(400) // io-ts validation rejects empty names
 
-      expect(response.body.name).toBe('')
+      expect(response.body.error).toBeDefined()
     })
   })
 

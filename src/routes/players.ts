@@ -3,8 +3,9 @@ import { pipe } from 'fp-ts/lib/function'
 import * as E from 'fp-ts/lib/Either'
 import * as O from 'fp-ts/lib/Option'
 import * as TE from 'fp-ts/lib/TaskEither'
-import { CreatePlayerRequest, PokemonApiResponse, Player, PlayerResponse, PlayerDetailResponse } from '../types/index.ts'
+import { PokemonApiResponse, Player, PlayerResponse, PlayerDetailResponse } from '../types/index.ts'
 import { createPlayer, getTournament, getPlayer, getPlayersByTournament } from '../storage/index.ts'
+import { validateBody, CreatePlayerCodec, CreatePlayerInput } from '../validation/index.ts'
 
 // Pure function to transform Player to PlayerResponse
 const toPlayerResponse = (player: Player): PlayerResponse => ({
@@ -46,15 +47,18 @@ export async function playerRoutes(fastify: FastifyInstance) {
   // POST /tournaments/:tournamentId/players - Add a Pokemon player
   fastify.post<{
     Params: { tournamentId: string },
-    Body: CreatePlayerRequest
+    Body: CreatePlayerInput
   }>('/tournaments/:tournamentId/players', async (request, reply) => {
     const { tournamentId } = request.params
-    const { name } = request.body || {}
 
-    // Validate request body
-    if (!request.body || !name) {
-      return reply.status(400).send({ error: 'Name is required' })
+    // Validate request body using io-ts codec
+    const validationResult = validateBody(CreatePlayerCodec, request.body)
+
+    if (E.isLeft(validationResult)) {
+      return reply.status(400).send({ error: validationResult.left })
     }
+
+    const { name } = validationResult.right
 
     // Check if tournament exists using Option pattern
     const tournamentOption = getTournament(tournamentId)
