@@ -36,6 +36,10 @@ export const getTournament = (id: string): Option<Tournament> => {
   return O.fromNullable(storage.tournaments.get(id))
 }
 
+export const getAllTournaments = (): Tournament[] => {
+  return Array.from(storage.tournaments.values())
+}
+
 // Player operations
 export const createPlayer = (name: string, tournamentId: string, pokemonData: {
   id: number

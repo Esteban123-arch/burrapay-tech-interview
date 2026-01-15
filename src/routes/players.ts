@@ -3,8 +3,23 @@ import { pipe } from 'fp-ts/lib/function'
 import * as E from 'fp-ts/lib/Either'
 import * as O from 'fp-ts/lib/Option'
 import * as TE from 'fp-ts/lib/TaskEither'
-import { CreatePlayerRequest, PokemonApiResponse } from '../types/index.ts'
-import { createPlayer, getTournament } from '../storage/index.ts'
+import { CreatePlayerRequest, PokemonApiResponse, Player, PlayerResponse, PlayerDetailResponse } from '../types/index.ts'
+import { createPlayer, getTournament, getPlayer, getPlayersByTournament } from '../storage/index.ts'
+
+// Pure function to transform Player to PlayerResponse
+const toPlayerResponse = (player: Player): PlayerResponse => ({
+  id: player.id,
+  name: player.name,
+  tournamentId: player.tournamentId
+})
+
+// Pure function to transform Player to PlayerDetailResponse (includes Pokemon data)
+const toPlayerDetailResponse = (player: Player): PlayerDetailResponse => ({
+  id: player.id,
+  name: player.name,
+  tournamentId: player.tournamentId,
+  pokemonData: player.pokemonData
+})
 
 // Pokemon API validation function using TaskEither
 const validatePokemon = (name: string): TE.TaskEither<string, PokemonApiResponse> =>
@@ -76,15 +91,48 @@ export async function playerRoutes(fastify: FastifyInstance) {
               // Right: Success - return PlayerResponse
               (player) => {
                 reply.status(201)
-                return reply.send({
-                  id: player.id,
-                  name: player.name,
-                  tournamentId: player.tournamentId
-                })
+                return reply.send(toPlayerResponse(player))
               }
             )
           )
         }
+      )
+    )
+  })
+
+  // GET /tournaments/:tournamentId/players - List players in a tournament
+  fastify.get<{ Params: { tournamentId: string } }>(
+    '/tournaments/:tournamentId/players',
+    async (request, reply) => {
+      const { tournamentId } = request.params
+
+      // Check if tournament exists using Option pattern
+      return pipe(
+        getTournament(tournamentId),
+        O.fold(
+          // None: Tournament not found
+          () => reply.status(404).send({ error: 'Tournament not found' }),
+          // Some: Return players for this tournament
+          () => {
+            const players = getPlayersByTournament(tournamentId)
+            return reply.send(players.map(toPlayerDetailResponse))
+          }
+        )
+      )
+    }
+  )
+
+  // GET /players/:id - Get single player by ID
+  fastify.get<{ Params: { id: string } }>('/players/:id', async (request, reply) => {
+    const { id } = request.params
+
+    return pipe(
+      getPlayer(id),
+      O.fold(
+        // None: Player not found
+        () => reply.status(404).send({ error: 'Player not found' }),
+        // Some: Return player detail response
+        (player) => reply.send(toPlayerDetailResponse(player))
       )
     )
   })

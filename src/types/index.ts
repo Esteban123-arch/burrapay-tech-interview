@@ -56,6 +56,19 @@ export interface PlayerResponse {
   tournamentId: string
 }
 
+// Extended player response with Pokemon data
+export interface PlayerDetailResponse {
+  id: string
+  name: string
+  tournamentId: string
+  pokemonData: {
+    id: number
+    types: string[]
+    height: number
+    weight: number
+  }
+}
+
 // Health check response type
 export interface HealthResponse {
   status: 'OK'
@@ -64,6 +77,7 @@ export interface HealthResponse {
 
 // Server configuration type
 export interface ServerConfig {
-  port: number
   host: string
+  port: number
+  
 }
