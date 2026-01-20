@@ -1,0 +1,1405 @@
+{
+	"info": {
+		"_postman_id": "pokemon-tournament-api-collection",
+		"name": "Pokemon Tournament API",
+		"description": "A comprehensive API collection for the Pokemon Tournament system. This API allows you to create tournaments and add Pokemon as players.\n\n## Base URL\n- Local: `http://localhost:3000`\n\n## Authentication\nNo authentication required - all endpoints are publicly accessible.\n\n## Features\n- Create and manage tournaments\n- Add Pokemon players (validated against PokeAPI)\n- LRU caching for Pokemon data (check `X-Pokemon-Cache` header)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "tournamentId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "playerId",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Health Check",
+			"item": [
+				{
+					"name": "Health Check",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response has correct structure', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('status');",
+									"    pm.expect(jsonData).to.have.property('timestamp');",
+									"    pm.expect(jsonData.status).to.eql('OK');",
+									"});",
+									"",
+									"pm.test('Timestamp is valid ISO date', function () {",
+									"    const jsonData = pm.response.json();",
+									"    const date = new Date(jsonData.timestamp);",
+									"    pm.expect(date.toString()).to.not.eql('Invalid Date');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
+						},
+						"description": "Check if the API server is running and healthy."
+					},
+					"response": [
+						{
+							"name": "Health Check - Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/health",
+									"host": ["{{baseUrl}}"],
+									"path": ["health"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"status\": \"OK\",\n    \"timestamp\": \"2026-01-20T12:34:56.789Z\"\n}"
+						}
+					]
+				}
+			],
+			"description": "Health check endpoints to verify API availability."
+		},
+		{
+			"name": "Tournaments",
+			"item": [
+				{
+					"name": "Create Tournament",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Response has correct structure', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"    pm.expect(jsonData).to.have.property('name');",
+									"    pm.expect(jsonData).to.have.property('createdAt');",
+									"});",
+									"",
+									"pm.test('Tournament name matches request', function () {",
+									"    const jsonData = pm.response.json();",
+									"    const requestBody = JSON.parse(pm.request.body.raw);",
+									"    pm.expect(jsonData.name).to.eql(requestBody.name);",
+									"});",
+									"",
+									"pm.test('ID is a valid UUID', function () {",
+									"    const jsonData = pm.response.json();",
+									"    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+									"    pm.expect(jsonData.id).to.match(uuidRegex);",
+									"});",
+									"",
+									"// Save tournament ID for subsequent requests",
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('tournamentId', jsonData.id);",
+									"    console.log('Saved tournamentId:', jsonData.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Kanto Championship 2026\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tournaments",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments"]
+						},
+						"description": "Create a new Pokemon tournament.\n\n**Request Body:**\n- `name` (string, required): The name of the tournament. Must be a non-empty string."
+					},
+					"response": [
+						{
+							"name": "Create Tournament - Success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Kanto Championship 2026\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/tournaments",
+									"host": ["{{baseUrl}}"],
+									"path": ["tournaments"]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Kanto Championship 2026\",\n    \"createdAt\": \"2026-01-20T12:34:56.789Z\"\n}"
+						},
+						{
+							"name": "Create Tournament - Empty Name",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/tournaments",
+									"host": ["{{baseUrl}}"],
+									"path": ["tournaments"]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"error\": \"Invalid value \\\"\\\" supplied to : { name: NonEmptyString }/name: NonEmptyString\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get All Tournaments",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response is an array', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});",
+									"",
+									"pm.test('Each tournament has required fields', function () {",
+									"    const jsonData = pm.response.json();",
+									"    jsonData.forEach(function(tournament) {",
+									"        pm.expect(tournament).to.have.property('id');",
+									"        pm.expect(tournament).to.have.property('name');",
+									"        pm.expect(tournament).to.have.property('createdAt');",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/tournaments",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments"]
+						},
+						"description": "Retrieve a list of all tournaments."
+					},
+					"response": [
+						{
+							"name": "Get All Tournaments - Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/tournaments",
+									"host": ["{{baseUrl}}"],
+									"path": ["tournaments"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "[\n    {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"name\": \"Kanto Championship 2026\",\n        \"createdAt\": \"2026-01-20T12:34:56.789Z\"\n    },\n    {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440001\",\n        \"name\": \"Johto League Finals\",\n        \"createdAt\": \"2026-01-20T14:00:00.000Z\"\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "Get Tournament by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response has correct structure', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"    pm.expect(jsonData).to.have.property('name');",
+									"    pm.expect(jsonData).to.have.property('createdAt');",
+									"});",
+									"",
+									"pm.test('Tournament ID matches request', function () {",
+									"    const jsonData = pm.response.json();",
+									"    const requestedId = pm.collectionVariables.get('tournamentId');",
+									"    pm.expect(jsonData.id).to.eql(requestedId);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/{{tournamentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "{{tournamentId}}"]
+						},
+						"description": "Retrieve a specific tournament by its ID.\n\n**Path Parameters:**\n- `id` (string): The UUID of the tournament."
+					},
+					"response": [
+						{
+							"name": "Get Tournament - Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/tournaments/550e8400-e29b-41d4-a716-446655440000",
+									"host": ["{{baseUrl}}"],
+									"path": ["tournaments", "550e8400-e29b-41d4-a716-446655440000"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Kanto Championship 2026\",\n    \"createdAt\": \"2026-01-20T12:34:56.789Z\"\n}"
+						},
+						{
+							"name": "Get Tournament - Not Found",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/tournaments/non-existent-id",
+									"host": ["{{baseUrl}}"],
+									"path": ["tournaments", "non-existent-id"]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"error\": \"Tournament not found\"\n}"
+						}
+					]
+				}
+			],
+			"description": "Endpoints for managing Pokemon tournaments."
+		},
+		{
+			"name": "Players",
+			"item": [
+				{
+					"name": "Add Player to Tournament (Pikachu)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Response has correct structure', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"    pm.expect(jsonData).to.have.property('name');",
+									"    pm.expect(jsonData).to.have.property('tournamentId');",
+									"});",
+									"",
+									"pm.test('Pokemon name is lowercase', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.name).to.eql(jsonData.name.toLowerCase());",
+									"});",
+									"",
+									"pm.test('X-Pokemon-Cache header exists', function () {",
+									"    pm.expect(pm.response.headers.has('X-Pokemon-Cache')).to.be.true;",
+									"    const cacheHeader = pm.response.headers.get('X-Pokemon-Cache');",
+									"    pm.expect(['HIT', 'MISS']).to.include(cacheHeader);",
+									"});",
+									"",
+									"// Save player ID for subsequent requests",
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('playerId', jsonData.id);",
+									"    console.log('Saved playerId:', jsonData.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"pikachu\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/{{tournamentId}}/players",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "{{tournamentId}}", "players"]
+						},
+						"description": "Add a Pokemon player to a tournament. The Pokemon name is validated against the PokeAPI.\n\n**Path Parameters:**\n- `tournamentId` (string): The UUID of the tournament.\n\n**Request Body:**\n- `name` (string, required): A valid Pokemon name (case-insensitive).\n\n**Response Headers:**\n- `X-Pokemon-Cache`: `HIT` if Pokemon data was served from cache, `MISS` if fetched from PokeAPI."
+					},
+					"response": [
+						{
+							"name": "Add Player - Success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"pikachu\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/tournaments/{{tournamentId}}/players",
+									"host": ["{{baseUrl}}"],
+									"path": ["tournaments", "{{tournamentId}}", "players"]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "X-Pokemon-Cache",
+									"value": "MISS"
+								}
+							],
+							"body": "{\n    \"id\": \"660e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"pikachu\",\n    \"tournamentId\": \"550e8400-e29b-41d4-a716-446655440000\"\n}"
+						},
+						{
+							"name": "Add Player - Invalid Pokemon",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"notapokemon\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/tournaments/{{tournamentId}}/players",
+									"host": ["{{baseUrl}}"],
+									"path": ["tournaments", "{{tournamentId}}", "players"]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"error\": \"Name is not a valid Pokemon\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Add Player to Tournament (Charizard)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Response has correct structure', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"    pm.expect(jsonData).to.have.property('name');",
+									"    pm.expect(jsonData).to.have.property('tournamentId');",
+									"});",
+									"",
+									"pm.test('Pokemon name matches', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.name).to.eql('charizard');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"charizard\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/{{tournamentId}}/players",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "{{tournamentId}}", "players"]
+						},
+						"description": "Add Charizard as a player to the tournament."
+					},
+					"response": []
+				},
+				{
+					"name": "Add Player to Tournament (Mewtwo)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Pokemon name matches', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.name).to.eql('mewtwo');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"mewtwo\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/{{tournamentId}}/players",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "{{tournamentId}}", "players"]
+						},
+						"description": "Add Mewtwo as a player to the tournament."
+					},
+					"response": []
+				},
+				{
+					"name": "Add Player to Tournament (Blastoise)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Pokemon name matches', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.name).to.eql('blastoise');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"blastoise\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/{{tournamentId}}/players",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "{{tournamentId}}", "players"]
+						},
+						"description": "Add Blastoise as a player to the tournament."
+					},
+					"response": []
+				},
+				{
+					"name": "Add Player - Invalid Pokemon",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test('Error message indicates invalid Pokemon', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"    pm.expect(jsonData.error).to.include('valid Pokemon');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"digimon\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/{{tournamentId}}/players",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "{{tournamentId}}", "players"]
+						},
+						"description": "Test adding an invalid Pokemon name. Should return 400 Bad Request."
+					},
+					"response": [
+						{
+							"name": "Add Player - Invalid Pokemon",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"digimon\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/tournaments/{{tournamentId}}/players",
+									"host": ["{{baseUrl}}"],
+									"path": ["tournaments", "{{tournamentId}}", "players"]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"error\": \"Name is not a valid Pokemon\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Add Player - Empty Name",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test('Error message exists', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/{{tournamentId}}/players",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "{{tournamentId}}", "players"]
+						},
+						"description": "Test adding a player with an empty name. Should return 400 Bad Request."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Players in Tournament",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response is an array', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});",
+									"",
+									"pm.test('Each player has required fields including pokemonData', function () {",
+									"    const jsonData = pm.response.json();",
+									"    jsonData.forEach(function(player) {",
+									"        pm.expect(player).to.have.property('id');",
+									"        pm.expect(player).to.have.property('name');",
+									"        pm.expect(player).to.have.property('tournamentId');",
+									"        pm.expect(player).to.have.property('pokemonData');",
+									"        pm.expect(player.pokemonData).to.have.property('id');",
+									"        pm.expect(player.pokemonData).to.have.property('types');",
+									"        pm.expect(player.pokemonData).to.have.property('height');",
+									"        pm.expect(player.pokemonData).to.have.property('weight');",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/{{tournamentId}}/players",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "{{tournamentId}}", "players"]
+						},
+						"description": "Retrieve all players in a tournament with their full Pokemon data.\n\n**Path Parameters:**\n- `tournamentId` (string): The UUID of the tournament.\n\n**Response includes:**\n- Player ID, name, and tournament ID\n- Full Pokemon data (Pokedex ID, types, height, weight)"
+					},
+					"response": [
+						{
+							"name": "Get All Players - Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/tournaments/{{tournamentId}}/players",
+									"host": ["{{baseUrl}}"],
+									"path": ["tournaments", "{{tournamentId}}", "players"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "[\n    {\n        \"id\": \"660e8400-e29b-41d4-a716-446655440000\",\n        \"name\": \"pikachu\",\n        \"tournamentId\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"pokemonData\": {\n            \"id\": 25,\n            \"types\": [\"electric\"],\n            \"height\": 4,\n            \"weight\": 60\n        }\n    },\n    {\n        \"id\": \"660e8400-e29b-41d4-a716-446655440001\",\n        \"name\": \"charizard\",\n        \"tournamentId\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"pokemonData\": {\n            \"id\": 6,\n            \"types\": [\"fire\", \"flying\"],\n            \"height\": 17,\n            \"weight\": 905\n        }\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "Get Player by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response has correct structure', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"    pm.expect(jsonData).to.have.property('name');",
+									"    pm.expect(jsonData).to.have.property('tournamentId');",
+									"    pm.expect(jsonData).to.have.property('pokemonData');",
+									"});",
+									"",
+									"pm.test('Pokemon data has required fields', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.pokemonData).to.have.property('id');",
+									"    pm.expect(jsonData.pokemonData).to.have.property('types');",
+									"    pm.expect(jsonData.pokemonData).to.have.property('height');",
+									"    pm.expect(jsonData.pokemonData).to.have.property('weight');",
+									"    pm.expect(jsonData.pokemonData.types).to.be.an('array');",
+									"});",
+									"",
+									"pm.test('Player ID matches request', function () {",
+									"    const jsonData = pm.response.json();",
+									"    const requestedId = pm.collectionVariables.get('playerId');",
+									"    pm.expect(jsonData.id).to.eql(requestedId);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/players/{{playerId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["players", "{{playerId}}"]
+						},
+						"description": "Retrieve a specific player by their ID with full Pokemon data.\n\n**Path Parameters:**\n- `id` (string): The UUID of the player."
+					},
+					"response": [
+						{
+							"name": "Get Player - Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/players/660e8400-e29b-41d4-a716-446655440000",
+									"host": ["{{baseUrl}}"],
+									"path": ["players", "660e8400-e29b-41d4-a716-446655440000"]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"id\": \"660e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"pikachu\",\n    \"tournamentId\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"pokemonData\": {\n        \"id\": 25,\n        \"types\": [\"electric\"],\n        \"height\": 4,\n        \"weight\": 60\n    }\n}"
+						},
+						{
+							"name": "Get Player - Not Found",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/players/non-existent-id",
+									"host": ["{{baseUrl}}"],
+									"path": ["players", "non-existent-id"]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"error\": \"Player not found\"\n}"
+						}
+					]
+				}
+			],
+			"description": "Endpoints for managing Pokemon players in tournaments."
+		},
+		{
+			"name": "Error Cases",
+			"item": [
+				{
+					"name": "Tournament Not Found",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"",
+									"pm.test('Error message is correct', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"    pm.expect(jsonData.error).to.eql('Tournament not found');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/00000000-0000-0000-0000-000000000000",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "00000000-0000-0000-0000-000000000000"]
+						},
+						"description": "Test fetching a non-existent tournament."
+					},
+					"response": []
+				},
+				{
+					"name": "Player Not Found",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"",
+									"pm.test('Error message is correct', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"    pm.expect(jsonData.error).to.eql('Player not found');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/players/00000000-0000-0000-0000-000000000000",
+							"host": ["{{baseUrl}}"],
+							"path": ["players", "00000000-0000-0000-0000-000000000000"]
+						},
+						"description": "Test fetching a non-existent player."
+					},
+					"response": []
+				},
+				{
+					"name": "Add Player - Tournament Not Found",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 404', function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"",
+									"pm.test('Error message is correct', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"    pm.expect(jsonData.error).to.eql('Tournament not found');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"pikachu\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/00000000-0000-0000-0000-000000000000/players",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "00000000-0000-0000-0000-000000000000", "players"]
+						},
+						"description": "Test adding a player to a non-existent tournament."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Tournament - Missing Body",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test('Error message exists', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tournaments",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments"]
+						},
+						"description": "Test creating a tournament without a request body."
+					},
+					"response": []
+				}
+			],
+			"description": "Test cases for error handling scenarios."
+		},
+		{
+			"name": "Full Workflow",
+			"item": [
+				{
+					"name": "1. Create Tournament",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('tournamentId', jsonData.id);",
+									"    console.log('Created tournament:', jsonData.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Ultimate Pokemon Battle Royale\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tournaments",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments"]
+						},
+						"description": "Step 1: Create a new tournament for the workflow test."
+					},
+					"response": []
+				},
+				{
+					"name": "2. Add Pikachu",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Pikachu was added', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.name).to.eql('pikachu');",
+									"});",
+									"",
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('playerId', jsonData.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"pikachu\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/{{tournamentId}}/players",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "{{tournamentId}}", "players"]
+						},
+						"description": "Step 2: Add Pikachu to the tournament."
+					},
+					"response": []
+				},
+				{
+					"name": "3. Add Charizard",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Charizard was added', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.name).to.eql('charizard');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"charizard\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/{{tournamentId}}/players",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "{{tournamentId}}", "players"]
+						},
+						"description": "Step 3: Add Charizard to the tournament."
+					},
+					"response": []
+				},
+				{
+					"name": "4. Add Blastoise",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Blastoise was added', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.name).to.eql('blastoise');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"blastoise\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/{{tournamentId}}/players",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "{{tournamentId}}", "players"]
+						},
+						"description": "Step 4: Add Blastoise to the tournament."
+					},
+					"response": []
+				},
+				{
+					"name": "5. Add Venusaur",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Venusaur was added', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.name).to.eql('venusaur');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"venusaur\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/{{tournamentId}}/players",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "{{tournamentId}}", "players"]
+						},
+						"description": "Step 5: Add Venusaur to the tournament."
+					},
+					"response": []
+				},
+				{
+					"name": "6. Get Tournament Details",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Tournament name matches', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.name).to.eql('Ultimate Pokemon Battle Royale');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/{{tournamentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "{{tournamentId}}"]
+						},
+						"description": "Step 6: Verify the tournament was created correctly."
+					},
+					"response": []
+				},
+				{
+					"name": "7. Get All Players",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Tournament has 4 players', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.lengthOf(4);",
+									"});",
+									"",
+									"pm.test('All starters are present', function () {",
+									"    const jsonData = pm.response.json();",
+									"    const names = jsonData.map(p => p.name);",
+									"    pm.expect(names).to.include('pikachu');",
+									"    pm.expect(names).to.include('charizard');",
+									"    pm.expect(names).to.include('blastoise');",
+									"    pm.expect(names).to.include('venusaur');",
+									"});",
+									"",
+									"pm.test('All players have Pokemon data', function () {",
+									"    const jsonData = pm.response.json();",
+									"    jsonData.forEach(player => {",
+									"        pm.expect(player.pokemonData).to.exist;",
+									"        pm.expect(player.pokemonData.types).to.be.an('array');",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/{{tournamentId}}/players",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "{{tournamentId}}", "players"]
+						},
+						"description": "Step 7: Verify all players were added with their Pokemon data."
+					},
+					"response": []
+				},
+				{
+					"name": "8. Get Single Player",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Player has complete data', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.id).to.eql(pm.collectionVariables.get('playerId'));",
+									"    pm.expect(jsonData.pokemonData).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/players/{{playerId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["players", "{{playerId}}"]
+						},
+						"description": "Step 8: Verify single player retrieval works."
+					},
+					"response": []
+				}
+			],
+			"description": "A complete workflow test that creates a tournament, adds multiple Pokemon players, and verifies all data.\n\nRun these requests in order to test the full API flow."
+		}
+	]
+}
