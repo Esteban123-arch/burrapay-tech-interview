@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "pokemon-tournament-api-collection",
 		"name": "Pokemon Tournament API",
-		"description": "A comprehensive API collection for the Pokemon Tournament system. This API allows you to create tournaments and add Pokemon as players.\n\n## Base URL\n- Local: `http://localhost:3000`\n\n## Authentication\nNo authentication required - all endpoints are publicly accessible.\n\n## Features\n- Create and manage tournaments\n- Add Pokemon players (validated against PokeAPI)\n- LRU caching for Pokemon data (check `X-Pokemon-Cache` header)",
+		"description": "A comprehensive API collection for the Pokemon Tournament system. This API allows you to create tournaments and add Pokemon as players.\n\n## Base URL\n- Local: `http://localhost:3000`\n\n## Authentication\nNo authentication required - all endpoints are publicly accessible.\n\n## Features\n- Create and manage tournaments\n- Add Pokemon players (validated against PokeAPI)\n- LRU caching for Pokemon data (check `X-Pokemon-Cache` header)\n- Mega Tournament support (only Mega Pokemon allowed)",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [
@@ -18,6 +18,11 @@
 		},
 		{
 			"key": "playerId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "megaTournamentId",
 			"value": "",
 			"type": "string"
 		}
@@ -110,7 +115,16 @@
 									"    const jsonData = pm.response.json();",
 									"    pm.expect(jsonData).to.have.property('id');",
 									"    pm.expect(jsonData).to.have.property('name');",
+									"    pm.expect(jsonData).to.have.property('isMegaTournament');",
 									"    pm.expect(jsonData).to.have.property('createdAt');",
+									"});",
+									"",
+									"pm.test('isMegaTournament defaults to false', function () {",
+									"    const jsonData = pm.response.json();",
+									"    const requestBody = JSON.parse(pm.request.body.raw);",
+									"    if (requestBody.isMegaTournament === undefined) {",
+									"        pm.expect(jsonData.isMegaTournament).to.eql(false);",
+									"    }",
 									"});",
 									"",
 									"pm.test('Tournament name matches request', function () {",
@@ -153,7 +167,7 @@
 							"host": ["{{baseUrl}}"],
 							"path": ["tournaments"]
 						},
-						"description": "Create a new Pokemon tournament.\n\n**Request Body:**\n- `name` (string, required): The name of the tournament. Must be a non-empty string."
+						"description": "Create a new Pokemon tournament.\n\n**Request Body:**\n- `name` (string, required): The name of the tournament. Must be a non-empty string.\n- `isMegaTournament` (boolean, optional): If true, only Mega Pokemon can be added as players. Defaults to false."
 					},
 					"response": [
 						{
@@ -185,7 +199,7 @@
 									"value": "application/json"
 								}
 							],
-							"body": "{\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Kanto Championship 2026\",\n    \"createdAt\": \"2026-01-20T12:34:56.789Z\"\n}"
+							"body": "{\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Kanto Championship 2026\",\n    \"isMegaTournament\": false,\n    \"createdAt\": \"2026-01-20T12:34:56.789Z\"\n}"
 						},
 						{
 							"name": "Create Tournament - Empty Name",
@@ -241,6 +255,7 @@
 									"    jsonData.forEach(function(tournament) {",
 									"        pm.expect(tournament).to.have.property('id');",
 									"        pm.expect(tournament).to.have.property('name');",
+									"        pm.expect(tournament).to.have.property('isMegaTournament');",
 									"        pm.expect(tournament).to.have.property('createdAt');",
 									"    });",
 									"});"
@@ -280,7 +295,7 @@
 									"value": "application/json"
 								}
 							],
-							"body": "[\n    {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"name\": \"Kanto Championship 2026\",\n        \"createdAt\": \"2026-01-20T12:34:56.789Z\"\n    },\n    {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440001\",\n        \"name\": \"Johto League Finals\",\n        \"createdAt\": \"2026-01-20T14:00:00.000Z\"\n    }\n]"
+							"body": "[\n    {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n        \"name\": \"Kanto Championship 2026\",\n        \"isMegaTournament\": false,\n        \"createdAt\": \"2026-01-20T12:34:56.789Z\"\n    },\n    {\n        \"id\": \"550e8400-e29b-41d4-a716-446655440001\",\n        \"name\": \"Johto League Finals\",\n        \"isMegaTournament\": false,\n        \"createdAt\": \"2026-01-20T14:00:00.000Z\"\n    }\n]"
 						}
 					]
 				},
@@ -299,6 +314,7 @@
 									"    const jsonData = pm.response.json();",
 									"    pm.expect(jsonData).to.have.property('id');",
 									"    pm.expect(jsonData).to.have.property('name');",
+									"    pm.expect(jsonData).to.have.property('isMegaTournament');",
 									"    pm.expect(jsonData).to.have.property('createdAt');",
 									"});",
 									"",
@@ -343,7 +359,7 @@
 									"value": "application/json"
 								}
 							],
-							"body": "{\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Kanto Championship 2026\",\n    \"createdAt\": \"2026-01-20T12:34:56.789Z\"\n}"
+							"body": "{\n    \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"name\": \"Kanto Championship 2026\",\n    \"isMegaTournament\": false,\n    \"createdAt\": \"2026-01-20T12:34:56.789Z\"\n}"
 						},
 						{
 							"name": "Get Tournament - Not Found",
@@ -371,6 +387,338 @@
 				}
 			],
 			"description": "Endpoints for managing Pokemon tournaments."
+		},
+		{
+			"name": "Mega Tournaments",
+			"item": [
+				{
+					"name": "Create Mega Tournament",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Response has correct structure', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"    pm.expect(jsonData).to.have.property('name');",
+									"    pm.expect(jsonData).to.have.property('isMegaTournament');",
+									"    pm.expect(jsonData).to.have.property('createdAt');",
+									"});",
+									"",
+									"pm.test('isMegaTournament is true', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.isMegaTournament).to.eql(true);",
+									"});",
+									"",
+									"// Save tournament ID for subsequent requests",
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('megaTournamentId', jsonData.id);",
+									"    console.log('Saved megaTournamentId:', jsonData.id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Mega Evolution Championship\",\n    \"isMegaTournament\": true\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tournaments",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments"]
+						},
+						"description": "Create a Mega Tournament where only Mega Pokemon can participate.\n\n**Request Body:**\n- `name` (string, required): The name of the tournament.\n- `isMegaTournament` (boolean): Set to `true` to create a Mega Tournament."
+					},
+					"response": [
+						{
+							"name": "Create Mega Tournament - Success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Mega Evolution Championship\",\n    \"isMegaTournament\": true\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/tournaments",
+									"host": ["{{baseUrl}}"],
+									"path": ["tournaments"]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"id\": \"550e8400-e29b-41d4-a716-446655440002\",\n    \"name\": \"Mega Evolution Championship\",\n    \"isMegaTournament\": true,\n    \"createdAt\": \"2026-01-20T12:34:56.789Z\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Add Mega Pokemon to Mega Tournament (Charizard Mega X)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Response has correct structure', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('id');",
+									"    pm.expect(jsonData).to.have.property('name');",
+									"    pm.expect(jsonData).to.have.property('tournamentId');",
+									"});",
+									"",
+									"pm.test('Pokemon name contains mega', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.name.toLowerCase()).to.include('mega');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"charizard-mega-x\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/{{megaTournamentId}}/players",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "{{megaTournamentId}}", "players"]
+						},
+						"description": "Add a Mega Pokemon (Charizard Mega X) to a Mega Tournament. This should succeed because Mega Pokemon are allowed."
+					},
+					"response": [
+						{
+							"name": "Add Mega Pokemon - Success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"charizard-mega-x\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/tournaments/{{megaTournamentId}}/players",
+									"host": ["{{baseUrl}}"],
+									"path": ["tournaments", "{{megaTournamentId}}", "players"]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "X-Pokemon-Cache",
+									"value": "MISS"
+								}
+							],
+							"body": "{\n    \"id\": \"660e8400-e29b-41d4-a716-446655440002\",\n    \"name\": \"charizard-mega-x\",\n    \"tournamentId\": \"550e8400-e29b-41d4-a716-446655440002\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Add Mega Pokemon to Mega Tournament (Venusaur Mega)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 201', function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test('Pokemon name contains mega', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData.name.toLowerCase()).to.include('mega');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"venusaur-mega\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/{{megaTournamentId}}/players",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "{{megaTournamentId}}", "players"]
+						},
+						"description": "Add Mega Venusaur to a Mega Tournament."
+					},
+					"response": []
+				},
+				{
+					"name": "Add Regular Pokemon to Mega Tournament (Should Fail)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 400', function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"",
+									"pm.test('Error message indicates Mega Pokemon required', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"    pm.expect(jsonData.error).to.include('Mega');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"pikachu\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/{{megaTournamentId}}/players",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "{{megaTournamentId}}", "players"]
+						},
+						"description": "Attempt to add a regular Pokemon (Pikachu) to a Mega Tournament. This should fail with a 400 error because only Mega Pokemon are allowed in Mega Tournaments."
+					},
+					"response": [
+						{
+							"name": "Add Regular Pokemon to Mega Tournament - Rejected",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"pikachu\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/tournaments/{{megaTournamentId}}/players",
+									"host": ["{{baseUrl}}"],
+									"path": ["tournaments", "{{megaTournamentId}}", "players"]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"body": "{\n    \"error\": \"Only Mega Pokemon are allowed in Mega Tournaments\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Mega Tournament Players",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status code is 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test('Response is an array', function () {",
+									"    const jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});",
+									"",
+									"pm.test('All players are Mega Pokemon', function () {",
+									"    const jsonData = pm.response.json();",
+									"    jsonData.forEach(function(player) {",
+									"        pm.expect(player.name.toLowerCase()).to.include('mega');",
+									"    });",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/tournaments/{{megaTournamentId}}/players",
+							"host": ["{{baseUrl}}"],
+							"path": ["tournaments", "{{megaTournamentId}}", "players"]
+						},
+						"description": "Retrieve all players in a Mega Tournament. All players should be Mega Pokemon."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for testing Mega Tournament functionality. Mega Tournaments only allow Mega Pokemon as players."
 		},
 		{
 			"name": "Players",

@@ -225,6 +225,113 @@ describe('Pokemon Tournament API Integration Tests', () => {
     })
   })
 
+  describe('Mega Tournament Feature', () => {
+    it('should create a Mega Tournament with isMegaTournament flag', async () => {
+      const tournamentData = { name: 'Mega Pokemon Championship', isMegaTournament: true }
+
+      const response = await request
+        .post('/tournaments')
+        .send(tournamentData)
+        .expect(201)
+
+      expect(response.body).toMatchObject({
+        id: expect.any(String),
+        name: 'Mega Pokemon Championship',
+        isMegaTournament: true,
+        createdAt: expect.any(String)
+      })
+    })
+
+    it('should default isMegaTournament to false when not provided', async () => {
+      const tournamentData = { name: 'Regular Tournament' }
+
+      const response = await request
+        .post('/tournaments')
+        .send(tournamentData)
+        .expect(201)
+
+      expect(response.body).toMatchObject({
+        id: expect.any(String),
+        name: 'Regular Tournament',
+        isMegaTournament: false,
+        createdAt: expect.any(String)
+      })
+    })
+
+    it('should allow Mega Pokemon in Mega Tournament', async () => {
+      // Create a Mega Tournament
+      const tournamentResponse = await request
+        .post('/tournaments')
+        .send({ name: 'Mega Battle', isMegaTournament: true })
+        .expect(201)
+
+      const tournamentId = tournamentResponse.body.id
+
+      // Add a Mega Pokemon (charizard-mega-x is the PokeAPI naming convention)
+      const response = await request
+        .post(`/tournaments/${tournamentId}/players`)
+        .send({ name: 'charizard-mega-x' })
+        .expect(201)
+
+      expect(response.body).toMatchObject({
+        id: expect.any(String),
+        name: 'charizard-mega-x',
+        tournamentId: tournamentId
+      })
+    })
+
+    it('should reject non-Mega Pokemon in Mega Tournament', async () => {
+      // Create a Mega Tournament
+      const tournamentResponse = await request
+        .post('/tournaments')
+        .send({ name: 'Mega Only Battle', isMegaTournament: true })
+        .expect(201)
+
+      const tournamentId = tournamentResponse.body.id
+
+      // Try to add a regular Pokemon
+      const response = await request
+        .post(`/tournaments/${tournamentId}/players`)
+        .send({ name: 'pikachu' })
+        .expect(400)
+
+      expect(response.body).toMatchObject({
+        error: 'Only Mega Pokemon are allowed in Mega Tournaments'
+      })
+
+      // Verify no player was stored
+      expect(storage.players.size).toBe(0)
+    })
+
+    it('should allow any Pokemon in regular tournament', async () => {
+      // Create a regular tournament (isMegaTournament: false)
+      const tournamentResponse = await request
+        .post('/tournaments')
+        .send({ name: 'Open Tournament', isMegaTournament: false })
+        .expect(201)
+
+      const tournamentId = tournamentResponse.body.id
+
+      // Add a regular Pokemon
+      const response1 = await request
+        .post(`/tournaments/${tournamentId}/players`)
+        .send({ name: 'pikachu' })
+        .expect(201)
+
+      expect(response1.body.name).toBe('pikachu')
+
+      // Add a Mega Pokemon (should also be allowed in regular tournaments)
+      // PokeAPI naming convention: venusaur-mega
+      const response2 = await request
+        .post(`/tournaments/${tournamentId}/players`)
+        .send({ name: 'venusaur-mega' })
+        .expect(201)
+
+      expect(response2.body.name).toBe('venusaur-mega')
+      expect(storage.players.size).toBe(2)
+    })
+  })
+
   describe('Error Handling and Edge Cases', () => {
     it('should handle malformed request bodies', async () => {
       await request
