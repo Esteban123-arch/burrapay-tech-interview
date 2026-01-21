@@ -17,9 +17,14 @@ const NonEmptyString = new t.Type<string, string, unknown>(
 )
 
 // Codec for creating a tournament
-export const CreateTournamentCodec = t.type({
-  name: NonEmptyString
-})
+export const CreateTournamentCodec = t.intersection([
+  t.type({
+    name: NonEmptyString
+  }),
+  t.partial({
+    isMegaTournament: t.boolean
+  })
+])
 
 // Codec for creating a player (Pokemon)
 export const CreatePlayerCodec = t.type({

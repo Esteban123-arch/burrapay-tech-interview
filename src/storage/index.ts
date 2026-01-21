@@ -21,13 +21,14 @@ export const createStorage = (): TournamentStorage => ({
 export const storage = createStorage()
 
 // Tournament operations
-export const createTournament = (name: string): Either<string, Tournament> => {
+export const createTournament = (name: string, isMegaTournament: boolean = false): Either<string, Tournament> => {
   const tournament: Tournament = {
     id: uuidv4(),
     name,
+    isMegaTournament,
     createdAt: new Date()
   }
-  
+
   storage.tournaments.set(tournament.id, tournament)
   return E.right(tournament)
 }

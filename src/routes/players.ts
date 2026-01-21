@@ -88,6 +88,8 @@ export async function playerRoutes(fastify: FastifyInstance) {
       return reply.status(404).send({ error: 'Tournament not found' })
     }
 
+    const tournament = tournamentOption.value
+
     // Validate Pokemon name using TaskEither pattern
     const pokemonResult = await validatePokemon(name)()
 
@@ -101,6 +103,12 @@ export async function playerRoutes(fastify: FastifyInstance) {
           const { data: pokemonData, fromCache } = result
           // Extract types from nested structure
           const types = pokemonData.types.map((t: { type: { name: string } }) => t.type.name)
+
+          // Check if tournament is a Mega Tournament - only allow Mega Pokemon
+          const isMegaPokemon = pokemonData.name.toLowerCase().includes('mega')
+          if (tournament.isMegaTournament && !isMegaPokemon) {
+            return reply.status(400).send({ error: 'Only Mega Pokemon are allowed in Mega Tournaments' })
+          }
 
           // Create player with Pokemon data
           const playerResult = createPlayer(name, tournamentId, {

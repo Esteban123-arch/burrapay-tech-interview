@@ -10,6 +10,7 @@ import { validateBody, CreateTournamentCodec, CreateTournamentInput } from '../v
 const toTournamentResponse = (tournament: Tournament): TournamentResponse => ({
   id: tournament.id,
   name: tournament.name,
+  isMegaTournament: tournament.isMegaTournament,
   createdAt: tournament.createdAt.toISOString()
 })
 
@@ -20,7 +21,7 @@ export async function tournamentRoutes(fastify: FastifyInstance) {
     // Validate request body using io-ts codec
     return pipe(
       validateBody(CreateTournamentCodec, request.body),
-      E.chain(({ name }) => createTournament(name)),
+      E.chain(({ name, isMegaTournament }) => createTournament(name, isMegaTournament ?? false)),
       E.fold(
         // Left: Validation or creation error
         (error) => reply.status(400).send({ error }),
